@@ -30,7 +30,7 @@ namespace Sinbad {
         //   fields as per the header. If false, ignores and just fills what it can
         public static List<T> LoadObjects<T>(string filename, bool strict = true) where T: new()  {
             using (var stream = File.Open(filename, FileMode.Open)) {
-                using (var rdr = new StreamReader(stream)) {
+				using (var rdr = new StreamReader(stream,System.Text.Encoding.UTF8)) {
                     return LoadObjects<T>(rdr, strict);
                 }
             }
@@ -75,7 +75,7 @@ namespace Sinbad {
         // Field names are matched case-insensitive for convenience
         public static void LoadObject<T>(string filename, ref T destObject) {
             using (var stream = File.Open(filename, FileMode.Open)) {
-                using (var rdr = new StreamReader(stream)) {
+				using (var rdr = new StreamReader(stream,System.Text.Encoding.UTF8)) {
                     LoadObject<T>(rdr, ref destObject);
                 }
             }
