@@ -29,7 +29,30 @@ namespace Sinbad {
         // @param strict If true, log errors if a line doesn't have enough
         //   fields as per the header. If false, ignores and just fills what it can
         public static List<T> LoadObjects<T>(string filename, bool strict = true) where T: new()  {
-            using (var stream = File.Open(filename, FileMode.Open)) {
+#if UNITY_EDITOR
+            var dbPath = "Assets/StreamingAssets/" + filename;
+#else
+            var filepath = string.Format("{0}/{1}", Application.persistentDataPath, filename);
+            if (!File.Exists(filepath))
+        {
+            Debug.Log("Database not in Persistent path");
+#if UNITY_ANDROID
+        var loadDb = new WWW("jar:file://" + Application.dataPath + "!/assets/" + filename);  // this is the path to your StreamingAssets in android
+            while (!loadDb.isDone) { }  // CAREFUL here, for safety reasons you shouldn't let this while loop unattended, place a timer and error check
+            // then save to Application.persistentDataPath
+            File.WriteAllBytes(filepath, loadDb.bytes);
+#else
+        
+	var loadDb =  Application.streamingAssetsPath+"/"+ filename;  // this is the path to your StreamingAssets in iOS
+	// then save to Application.persistentDataPath
+	File.Copy(loadDb, filepath);
+#endif
+            Debug.Log("Database written");
+        }
+            var dbPath = filepath;
+#endif
+            //Debug.Log("Final PATH: " + dbPath);
+            using (var stream = File.Open(dbPath, FileMode.Open)) {
 				using (var rdr = new StreamReader(stream,System.Text.Encoding.UTF8)) {
                     return LoadObjects<T>(rdr, strict);
                 }
@@ -254,6 +277,26 @@ namespace Sinbad {
         }
 
         private static object ParseString(string strValue, Type t) {
+            if (t == typeof(Dictionary<string, string>))
+            {
+                Dictionary<string, string> res = new Dictionary<string, string>();
+                string[] pairs = strValue.Split('|');
+                foreach(string pair in pairs)
+                {
+                    string[] p = pair.Split(':');
+                    if (p.Length != 2)
+                    {
+                        Debug.LogError("error when parse pair" + pair+ " in string: "+strValue);
+                        return res;
+                    }
+                    if (res.ContainsKey(p[0]))
+                    {
+                        Debug.LogError("key " + p[0] + " has been defined multiple times in string: " + strValue);
+                    }
+                    res[p[0]] = p[1];
+                }
+                return res;
+            }
             var cv = TypeDescriptor.GetConverter(t);
             return cv.ConvertFromInvariantString(strValue);
         }
